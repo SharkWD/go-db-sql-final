@@ -52,10 +52,7 @@ func TestAddGetDelete(t *testing.T) {
 	res, err := store.Get(id)
 
 	require.NoError(t, err)
-	assert.Equal(t, parcel.Client, res.Client)
-	assert.Equal(t, parcel.Status, res.Status)
-	assert.Equal(t, parcel.Address, res.Address)
-	assert.Equal(t, parcel.CreatedAt, res.CreatedAt)
+	assert.Equal(t, parcel, res)
 	// delete
 	// удалите добавленную посылку, убедитесь в отсутствии ошибки
 	// проверьте, что посылку больше нельзя получить из БД
@@ -63,7 +60,7 @@ func TestAddGetDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = store.Get(id)
-	require.Equal(t, sql.ErrNoRows, err)
+	assert.ErrorIs(t, err, sql.ErrNoRows)
 }
 
 // TestSetAddress проверяет обновление адреса
@@ -165,37 +162,29 @@ func TestGetByClient(t *testing.T) {
 
 	// get by client
 	// получите список посылок по идентификатору клиента, сохранённого в переменной client
-	storedParcels, err := db.Query("SELECT number, client, status, address, created_at FROM parcel WHERE client = :client", sql.Named("client", client))
-	defer storedParcels.Close()
+	store := NewParcelStore(db)
+	storedParcels, err := store.GetByClient(client)
 
 	// убедитесь в отсутствии ошибки
 	require.NoError(t, err)
 
 	// убедитесь, что количество полученных посылок совпадает с количеством добавленных
-	count := 0
-	for storedParcels.Next() {
-		count += 1
-	}
-	assert.Equal(t, len(parcelMap), count)
+	assert.Equal(t, len(parcelMap), len(storedParcels))
 
 	// check
-	for storedParcels.Next() {
+	for _, parcel := range storedParcels {
 		// в parcelMap лежат добавленные посылки, ключ - идентификатор посылки, значение - сама посылка
 		// убедитесь, что все посылки из storedParcels есть в parcelMap
 		// убедитесь, что значения полей полученных посылок заполнены верно
-		par := Parcel{}
-		err := storedParcels.Scan(&par.Number, &par.Client, &par.Status, &par.Address, &par.CreatedAt)
 
-		require.NoError(t, err)
-
-		_, ok := parcelMap[par.Number]
+		_, ok := parcelMap[parcel.Number]
 		if !ok {
-			fmt.Printf("Not found parcel №%v", par.Number)
+			fmt.Printf("Not found parcel №%v", parcel.Number)
 		}
 
-		assert.Equal(t, par.Client, parcelMap[par.Number].Client)
-		assert.Equal(t, par.Status, parcelMap[par.Number].Status)
-		assert.Equal(t, par.Address, parcelMap[par.Number].Address)
-		assert.Equal(t, par.CreatedAt, parcelMap[par.Number].CreatedAt)
+		assert.Equal(t, parcel.Client, parcelMap[parcel.Number].Client)
+		assert.Equal(t, parcel.Status, parcelMap[parcel.Number].Status)
+		assert.Equal(t, parcel.Address, parcelMap[parcel.Number].Address)
+		assert.Equal(t, parcel.CreatedAt, parcelMap[parcel.Number].CreatedAt)
 	}
 }
