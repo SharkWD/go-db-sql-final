@@ -52,6 +52,9 @@ func TestAddGetDelete(t *testing.T) {
 	res, err := store.Get(id)
 
 	require.NoError(t, err)
+
+	parcel.Number = id
+
 	assert.Equal(t, parcel, res)
 	// delete
 	// удалите добавленную посылку, убедитесь в отсутствии ошибки
@@ -182,9 +185,6 @@ func TestGetByClient(t *testing.T) {
 			fmt.Printf("Not found parcel №%v", parcel.Number)
 		}
 
-		assert.Equal(t, parcel.Client, parcelMap[parcel.Number].Client)
-		assert.Equal(t, parcel.Status, parcelMap[parcel.Number].Status)
-		assert.Equal(t, parcel.Address, parcelMap[parcel.Number].Address)
-		assert.Equal(t, parcel.CreatedAt, parcelMap[parcel.Number].CreatedAt)
+		assert.Equal(t, parcel, parcelMap[parcel.Number])
 	}
 }
